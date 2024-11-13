@@ -74,11 +74,32 @@ function spawnCache(i: number, j: number) {
     // Each cache has a random point value, mutable by the player
     let pointValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
 
-    // The popup offers a description and button
     const popupDiv = document.createElement("div");
-    popupDiv.innerHTML = `
-                <div>There is a cache here at "${i},${j}". It has value <span id="value">${pointValue}</span>.</div>
+    // Base text for the cache
+    let text = `<div><b>Cache "${
+      Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
+    }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)}".</b></div>
+                <br></br>
+                <div>Inventory: 
+                    <ul>
+                        <li>Coin "${
+      Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
+    }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)} #1</li>`;
+    // Add text for every coin in the cache
+    for (let i = 0; i < 5; i++) {
+      if (pointValue > i * 20) {
+        text += `<li>Coin "${
+          Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
+        }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)} #${
+          i + 2
+        }</li>`;
+      }
+    }
+    text += `       </ul>
+                </div>
                 <button id="poke">poke</button>`;
+
+    popupDiv.innerHTML = text;
 
     // Clicking the button decrements the cache's value and increments the player's points
     popupDiv
