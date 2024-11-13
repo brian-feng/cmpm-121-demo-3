@@ -44,10 +44,17 @@ const playerMarker = leaflet.marker(OAKES_CLASSROOM);
 playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 
+// Display App Title
+const title = document.querySelector<HTMLDivElement>("#title")!;
+title.innerHTML = "Geocoin Carrier";
+title.style.marginLeft = "10px";
+title.style.font = "bold 54px sans-serif";
+
 // Display the player's points
 let playerPoints = 0;
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!; // element `statusPanel` is defined in index.html
 statusPanel.innerHTML = "No points yet...";
+statusPanel.style.font = "bold 24px sans-serif";
 
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
