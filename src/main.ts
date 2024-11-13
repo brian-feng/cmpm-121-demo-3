@@ -110,25 +110,26 @@ function spawnCache(i: number, j: number) {
     popupDiv.innerHTML = text;
 
     // Clicking the button decrements the cache's value and increments the player's points
-    for (let i = 1; i < 4; i++) {
+    for (let i = 1; i < coins.length + 1; i++) {
       popupDiv
-        .querySelector<HTMLButtonElement>(`#take${i + 1}`)!
+        .querySelector<HTMLButtonElement>(`#take${i}`)!
         .addEventListener("click", () => {
-          text = `<div><b>Cache "${
-            Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
-          }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)}".</b></div>
-                          <br></br>
-                          <div>Inventory: 
-                              <ul>`;
-          coins.splice(i, 1);
-          for (let i = 0; i < coins.length; i++) {
-            text += coins[i];
-          }
-          text += `       </ul>
-                          </div>`;
-          popupDiv.innerHTML = text;
+          popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!.disabled =
+            true;
           playerPoints++;
           statusPanel.innerHTML = `${playerPoints} points accumulated`;
+          let status = true;
+          for (let i = 1; i < coins.length + 1; i++) {
+            if (
+              popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!
+                .disabled == false
+            ) {
+              status = false;
+            }
+          }
+          if (status) {
+            rect.remove();
+          }
         });
     }
     return popupDiv;
