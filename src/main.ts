@@ -106,7 +106,8 @@ function spawnCache(i: number, j: number) {
       text += coins[i];
     }
     text += `       </ul>
-                </div>`;
+                </div>
+            <button id="deposit">Deposit</button>`;
     popupDiv.innerHTML = text;
 
     // Clicking the button decrements the cache's value and increments the player's points
@@ -118,20 +119,38 @@ function spawnCache(i: number, j: number) {
             true;
           playerPoints++;
           statusPanel.innerHTML = `${playerPoints} points accumulated`;
-          let status = true;
+        });
+    }
+
+    popupDiv
+      .querySelector<HTMLButtonElement>(`#deposit`)!
+      .addEventListener("click", () => {
+        if (playerPoints > 0) {
+          let status = false;
           for (let i = 1; i < coins.length + 1; i++) {
             if (
               popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!
-                .disabled == false
+                .disabled == true
             ) {
-              status = false;
+              status = true;
             }
           }
           if (status) {
-            rect.remove();
+            playerPoints--;
+            statusPanel.innerHTML = `${playerPoints} points accumulated`;
+            for (let i = 1; i < coins.length + 1; i++) {
+              if (
+                popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!
+                  .disabled == true
+              ) {
+                popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!
+                  .disabled = false;
+                break;
+              }
+            }
           }
-        });
-    }
+        }
+      });
     return popupDiv;
   });
 }
