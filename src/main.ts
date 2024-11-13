@@ -72,46 +72,65 @@ function spawnCache(i: number, j: number) {
   // Handle interactions with the cache
   rect.bindPopup(() => {
     // Each cache has a random point value, mutable by the player
-    let pointValue = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
+    const pointValue = Math.floor(
+      luck([i, j, "initialValue"].toString()) * 100,
+    );
 
     const popupDiv = document.createElement("div");
     // Base text for the cache
+    const coins: string[] = [
+      `<li>Coin "${Math.floor((origin.lat + i * TILE_DEGREES) * 10000)}:${
+        Math.floor((origin.lng + j * TILE_DEGREES) * 10000)
+      } #1 
+        <button id="take1">Take</button></li>`,
+    ];
+    // Add additional coins based on the cache's value
+    for (let i = 0; i < 3; i++) {
+      if (pointValue > i * 33) {
+        coins.push(
+          `<li>Coin "${Math.floor((origin.lat + i * TILE_DEGREES) * 10000)}:${
+            Math.floor((origin.lng + j * TILE_DEGREES) * 10000)
+          } #${i + 2}
+            <button id="take${i + 2}">Take</button></li>`,
+        );
+      }
+    }
+    // Set up the text for the cache
     let text = `<div><b>Cache "${
       Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
     }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)}".</b></div>
                 <br></br>
                 <div>Inventory: 
-                    <ul>
-                        <li>Coin "${
-      Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
-    }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)} #1</li>`;
-    // Add text for every coin in the cache
-    for (let i = 0; i < 5; i++) {
-      if (pointValue > i * 20) {
-        text += `<li>Coin "${
-          Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
-        }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)} #${
-          i + 2
-        }</li>`;
-      }
+                    <ul>`;
+    for (let i = 0; i < coins.length; i++) {
+      text += coins[i];
     }
     text += `       </ul>
-                </div>
-                <button id="poke">poke</button>`;
-
+                </div>`;
     popupDiv.innerHTML = text;
 
     // Clicking the button decrements the cache's value and increments the player's points
-    popupDiv
-      .querySelector<HTMLButtonElement>("#poke")!
-      .addEventListener("click", () => {
-        pointValue--;
-        popupDiv.querySelector<HTMLSpanElement>("#value")!.innerHTML =
-          pointValue.toString();
-        playerPoints++;
-        statusPanel.innerHTML = `${playerPoints} points accumulated`;
-      });
-
+    for (let i = 1; i < 4; i++) {
+      popupDiv
+        .querySelector<HTMLButtonElement>(`#take${i + 1}`)!
+        .addEventListener("click", () => {
+          text = `<div><b>Cache "${
+            Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
+          }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)}".</b></div>
+                          <br></br>
+                          <div>Inventory: 
+                              <ul>`;
+          coins.splice(i, 1);
+          for (let i = 0; i < coins.length; i++) {
+            text += coins[i];
+          }
+          text += `       </ul>
+                          </div>`;
+          popupDiv.innerHTML = text;
+          playerPoints++;
+          statusPanel.innerHTML = `${playerPoints} points accumulated`;
+        });
+    }
     return popupDiv;
   });
 }
