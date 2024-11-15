@@ -64,12 +64,7 @@ function regenerateText(
   i: number,
   j: number,
 ) {
-  const coinsList: string[] = [
-    `<li>Coin "${Math.floor((origin.lat + i * TILE_DEGREES) * 10000)}:${
-      Math.floor((origin.lng + j * TILE_DEGREES) * 10000)
-    } #1 
-			<button id="take1">Take</button></li>`,
-  ];
+  const coinsList: string[] = [];
   // Add additional coins based on the cache's value
   for (let i = 0; i < coins.length; i++) {
     coinsList.push(
@@ -84,7 +79,7 @@ function regenerateText(
     Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
   }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)}".</b></div>
 							<br></br>
-							<div>Inventory: 
+							<div>Coins: 
 									<ul>`;
   for (let i = 0; i < coinsList.length; i++) {
     text += coinsList[i];
@@ -93,6 +88,7 @@ function regenerateText(
 							</div>
 					<button id="deposit">Deposit</button>`;
   popupDiv.innerHTML = text;
+  console.log(coinsList[1]);
 }
 
 // New type for each cell in the neighborhood
@@ -107,7 +103,7 @@ interface Coin {
 }
 
 const cells: Cell[] = [];
-const playerCoins: Coin[] = [];
+//const playerCoins: Coin[] = [];
 
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
@@ -136,10 +132,11 @@ function spawnCache(i: number, j: number) {
     // Create the coins
     const coins: Coin[] = [];
     for (let i = 0; i < 3; i++) {
-      if (pointValue < i * 33) {
+      if (pointValue > i * 33) {
         coins.push({ cell: ret, serial: i + 1 });
       }
     }
+    console.log(pointValue);
 
     regenerateText(coins, popupDiv, i, j);
 
@@ -162,7 +159,7 @@ function spawnCache(i: number, j: number) {
         if (playerPoints > 0) {
           playerPoints--;
           statusPanel.innerHTML = `${playerPoints} points accumulated`;
-          coins.push(playerCoins[0]);
+          //coins.push(playerCoins[0]);
         }
       });
 
