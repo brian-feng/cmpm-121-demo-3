@@ -99,8 +99,6 @@ function regenerateText(
 interface Cell {
   i: number;
   j: number;
-  popupDiv: HTMLDivElement;
-  coins: Coin[];
 }
 
 interface Coin {
@@ -116,8 +114,6 @@ function spawnCache(i: number, j: number) {
   const ret: Cell = {
     i,
     j,
-    popupDiv: document.createElement("div"),
-    coins: [],
   };
   // Convert cell numbers into lat/lng bounds
   const bounds = leaflet.latLngBounds([
@@ -138,25 +134,25 @@ function spawnCache(i: number, j: number) {
 
     const popupDiv = document.createElement("div");
     // Create the coins
-    ret.coins = [];
+    const coins: Coin[] = [];
     for (let i = 0; i < 3; i++) {
       if (pointValue < i * 33) {
-        ret.coins.push({ cell: ret, serial: i + 1 });
+        coins.push({ cell: ret, serial: i + 1 });
       }
     }
 
-    regenerateText(ret.coins, popupDiv, i, j);
+    regenerateText(coins, popupDiv, i, j);
 
     // Clicking the button decrements the cache's value and increments the player's points
-    for (let i = 0; i < ret.coins.length; i++) {
+    for (let i = 0; i < coins.length; i++) {
       popupDiv
-        .querySelector<HTMLButtonElement>(`#take${ret.coins[i].serial}`)!
+        .querySelector<HTMLButtonElement>(`#take${coins[i].serial}`)!
         .addEventListener("click", () => {
-          ret.coins.splice(i, 1);
+          coins.splice(i, 1);
           i--;
           playerPoints++;
           statusPanel.innerHTML = `${playerPoints} points accumulated`;
-          regenerateText(ret.coins, popupDiv, i, j);
+          regenerateText(coins, popupDiv, i, j);
         });
     }
 
@@ -166,11 +162,10 @@ function spawnCache(i: number, j: number) {
         if (playerPoints > 0) {
           playerPoints--;
           statusPanel.innerHTML = `${playerPoints} points accumulated`;
-          ret.coins.push(playerCoins[0]);
+          coins.push(playerCoins[0]);
         }
       });
 
-    ret.popupDiv = popupDiv;
     return popupDiv;
   });
   return ret;
