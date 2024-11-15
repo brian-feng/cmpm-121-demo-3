@@ -181,7 +181,7 @@ for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
   for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
     // If location i,j is lucky enough, spawn a cache!
     if (luck([i, j].toString()) < CACHE_SPAWN_PROBABILITY) {
-      cells.push(spawnCache(i, j, i * NEIGHBORHOOD_SIZE + j));
+      cells.push(spawnCache(i, j));
     }
   }
 }
