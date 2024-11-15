@@ -50,16 +50,76 @@ title.innerHTML = "Geocoin Carrier";
 title.style.marginLeft = "10px";
 title.style.font = "bold 54px sans-serif";
 
+const origin = OAKES_CLASSROOM;
+
 // Display the player's points
 let playerPoints = 0;
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!; // element `statusPanel` is defined in index.html
 statusPanel.innerHTML = "No points yet...";
 statusPanel.style.font = "bold 24px sans-serif";
 
+function regenerateText(
+  coins: Coin[],
+  popupDiv: HTMLDivElement,
+  i: number,
+  j: number,
+) {
+  const coinsList: string[] = [
+    `<li>Coin "${Math.floor((origin.lat + i * TILE_DEGREES) * 10000)}:${
+      Math.floor((origin.lng + j * TILE_DEGREES) * 10000)
+    } #1 
+			<button id="take1">Take</button></li>`,
+  ];
+  // Add additional coins based on the cache's value
+  for (let i = 0; i < coins.length; i++) {
+    coinsList.push(
+      `<li>Coin "${Math.floor((origin.lat + i * TILE_DEGREES) * 10000)}:${
+        Math.floor((origin.lng + j * TILE_DEGREES) * 10000)
+      } #${coins[i].serial}
+				<button id="take${coins[i].serial}">Take</button></li>`,
+    );
+  }
+  // Set up the text for the cache
+  let text = `<div><b>Cache "${
+    Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
+  }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)}".</b></div>
+							<br></br>
+							<div>Inventory: 
+									<ul>`;
+  for (let i = 0; i < coinsList.length; i++) {
+    text += coinsList[i];
+  }
+  text += `       </ul>
+							</div>
+					<button id="deposit">Deposit</button>`;
+  popupDiv.innerHTML = text;
+}
+
+// New type for each cell in the neighborhood
+interface Cell {
+  i: number;
+  j: number;
+  popupDiv: HTMLDivElement;
+  coins: Coin[];
+}
+
+interface Coin {
+  cell: Cell;
+  serial: number;
+}
+
+const cells: Cell[] = [];
+const playerCoins: Coin[] = [];
+
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
+  const ret: Cell = {
+    i,
+    j,
+    popupDiv: document.createElement("div"),
+    coins: [],
+  };
   // Convert cell numbers into lat/lng bounds
-  const origin = OAKES_CLASSROOM;
   const bounds = leaflet.latLngBounds([
     [origin.lat + i * TILE_DEGREES, origin.lng + j * TILE_DEGREES],
     [origin.lat + (i + 1) * TILE_DEGREES, origin.lng + (j + 1) * TILE_DEGREES],
@@ -77,48 +137,26 @@ function spawnCache(i: number, j: number) {
     );
 
     const popupDiv = document.createElement("div");
-    // Base text for the cache
-    const coins: string[] = [
-      `<li>Coin "${Math.floor((origin.lat + i * TILE_DEGREES) * 10000)}:${
-        Math.floor((origin.lng + j * TILE_DEGREES) * 10000)
-      } #1 
-        <button id="take1">Take</button></li>`,
-    ];
-    // Add additional coins based on the cache's value
+    // Create the coins
+    ret.coins = [];
     for (let i = 0; i < 3; i++) {
-      if (pointValue > i * 33) {
-        coins.push(
-          `<li>Coin "${Math.floor((origin.lat + i * TILE_DEGREES) * 10000)}:${
-            Math.floor((origin.lng + j * TILE_DEGREES) * 10000)
-          } #${i + 2}
-            <button id="take${i + 2}">Take</button></li>`,
-        );
+      if (pointValue < i * 33) {
+        ret.coins.push({ cell: ret, serial: i + 1 });
       }
     }
-    // Set up the text for the cache
-    let text = `<div><b>Cache "${
-      Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
-    }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)}".</b></div>
-                <br></br>
-                <div>Inventory: 
-                    <ul>`;
-    for (let i = 0; i < coins.length; i++) {
-      text += coins[i];
-    }
-    text += `       </ul>
-                </div>
-            <button id="deposit">Deposit</button>`;
-    popupDiv.innerHTML = text;
+
+    regenerateText(ret.coins, popupDiv, i, j);
 
     // Clicking the button decrements the cache's value and increments the player's points
-    for (let i = 1; i < coins.length + 1; i++) {
+    for (let i = 0; i < ret.coins.length; i++) {
       popupDiv
-        .querySelector<HTMLButtonElement>(`#take${i}`)!
+        .querySelector<HTMLButtonElement>(`#take${ret.coins[i].serial}`)!
         .addEventListener("click", () => {
-          popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!.disabled =
-            true;
+          ret.coins.splice(i, 1);
+          i--;
           playerPoints++;
           statusPanel.innerHTML = `${playerPoints} points accumulated`;
+          regenerateText(ret.coins, popupDiv, i, j);
         });
     }
 
@@ -126,33 +164,16 @@ function spawnCache(i: number, j: number) {
       .querySelector<HTMLButtonElement>(`#deposit`)!
       .addEventListener("click", () => {
         if (playerPoints > 0) {
-          let status = false;
-          for (let i = 1; i < coins.length + 1; i++) {
-            if (
-              popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!
-                .disabled == true
-            ) {
-              status = true;
-            }
-          }
-          if (status) {
-            playerPoints--;
-            statusPanel.innerHTML = `${playerPoints} points accumulated`;
-            for (let i = 1; i < coins.length + 1; i++) {
-              if (
-                popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!
-                  .disabled == true
-              ) {
-                popupDiv.querySelector<HTMLButtonElement>(`#take${i}`)!
-                  .disabled = false;
-                break;
-              }
-            }
-          }
+          playerPoints--;
+          statusPanel.innerHTML = `${playerPoints} points accumulated`;
+          ret.coins.push(playerCoins[0]);
         }
       });
+
+    ret.popupDiv = popupDiv;
     return popupDiv;
   });
+  return ret;
 }
 
 // Look around the player's neighborhood for caches to spawn
@@ -160,7 +181,7 @@ for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
   for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
     // If location i,j is lucky enough, spawn a cache!
     if (luck([i, j].toString()) < CACHE_SPAWN_PROBABILITY) {
-      spawnCache(i, j);
+      cells.push(spawnCache(i, j, i * NEIGHBORHOOD_SIZE + j));
     }
   }
 }
