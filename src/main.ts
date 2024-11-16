@@ -1,5 +1,6 @@
 // @deno-types="npm:@types/leaflet@^1.9.14"
 import leaflet from "leaflet";
+import { Board } from "./board.ts";
 
 // Style sheets
 import "leaflet/dist/leaflet.css";
@@ -58,122 +59,127 @@ const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!; // 
 statusPanel.innerHTML = "No points yet...";
 statusPanel.style.font = "bold 24px sans-serif";
 
+function roundNumber(value: number): number {
+  return Math.floor(value * 10000);
+}
+
 function regenerateText(
   coins: Coin[],
   popupDiv: HTMLDivElement,
   i: number,
   j: number,
 ) {
+  const lat = roundNumber(origin.lat + i * TILE_DEGREES);
+  const long = roundNumber(origin.lng + j * TILE_DEGREES);
   const coinsList: string[] = [];
   // Add additional coins based on the cache's value
-  for (let i = 0; i < coins.length; i++) {
+  for (let k = 0; k < coins.length; k++) {
     coinsList.push(
-      `<li>Coin "${Math.floor((origin.lat + i * TILE_DEGREES) * 10000)}:${
-        Math.floor((origin.lng + j * TILE_DEGREES) * 10000)
-      } #${coins[i].serial}
-				<button id="take${coins[i].serial}">Take</button></li>`,
+      `<li>Coin ${
+        Math.floor((origin.lat + coins[k].i * TILE_DEGREES) * 10000)
+      }:${Math.floor((origin.lng + coins[k].j * TILE_DEGREES) * 10000)} #${
+        coins[k].serial
+      }</li>`,
     );
   }
   // Set up the text for the cache
-  let text = `<div><b>Cache "${
-    Math.floor((origin.lat + i * TILE_DEGREES) * 10000)
-  }:${Math.floor((origin.lng + j * TILE_DEGREES) * 10000)}".</b></div>
+  let text = `<div><b>Cache "${lat}:${long}".</b></div>
 							<br></br>
 							<div>Coins: 
 									<ul>`;
-  for (let i = 0; i < coinsList.length; i++) {
-    text += coinsList[i];
+  for (let k = 0; k < coinsList.length; k++) {
+    text += coinsList[k];
   }
   text += `       </ul>
 							</div>
-					<button id="deposit">Deposit</button>`;
+					<button id="take">Take Coin</button>
+					<button id="deposit">Deposit Coin</button>`;
   popupDiv.innerHTML = text;
-  console.log(coinsList[1]);
-}
-
-// New type for each cell in the neighborhood
-interface Cell {
-  i: number;
-  j: number;
 }
 
 interface Coin {
-  cell: Cell;
+  i: number;
+  j: number;
   serial: number;
 }
 
-const cells: Cell[] = [];
-//const playerCoins: Coin[] = [];
+const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
+const playerCoins: Coin[] = [];
+const coinCache: Map<string, Coin[]> = new Map<string, Coin[]>();
 
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
-  const ret: Cell = {
-    i,
-    j,
-  };
+  const lat = roundNumber(origin.lat + i * TILE_DEGREES);
+  const lng = roundNumber(origin.lng + j * TILE_DEGREES);
   // Convert cell numbers into lat/lng bounds
   const bounds = leaflet.latLngBounds([
     [origin.lat + i * TILE_DEGREES, origin.lng + j * TILE_DEGREES],
     [origin.lat + (i + 1) * TILE_DEGREES, origin.lng + (j + 1) * TILE_DEGREES],
   ]);
+  const pointValue = Math.floor(
+    luck([i, j, "initialValue"].toString()) * 100,
+  );
 
+  const coins: Coin[] = [];
+  for (let k = 0; k < 3; k++) {
+    if (pointValue > k * 33) {
+      coins.push({ i: lat, j: lng, serial: k + 1 });
+    }
+  }
+  if (coinCache.get([lat, lng].toString()) == null) {
+    coinCache.set([lat, lng].toString(), coins);
+  }
   // Add a rectangle to the map to represent the cache
   const rect = leaflet.rectangle(bounds);
   rect.addTo(map);
 
   // Handle interactions with the cache
   rect.bindPopup(() => {
-    // Each cache has a random point value, mutable by the player
-    const pointValue = Math.floor(
-      luck([i, j, "initialValue"].toString()) * 100,
-    );
-
     const popupDiv = document.createElement("div");
-    // Create the coins
-    const coins: Coin[] = [];
-    for (let i = 0; i < 3; i++) {
-      if (pointValue > i * 33) {
-        coins.push({ cell: ret, serial: i + 1 });
-      }
-    }
-    console.log(pointValue);
+    regenerateText(coinCache.get([lat, lng].toString())!, popupDiv, i, j);
 
-    regenerateText(coins, popupDiv, i, j);
-
-    // Clicking the button decrements the cache's value and increments the player's points
-    for (let i = 0; i < coins.length; i++) {
-      popupDiv
-        .querySelector<HTMLButtonElement>(`#take${coins[i].serial}`)!
-        .addEventListener("click", () => {
-          coins.splice(i, 1);
-          i--;
+    // Clicking the take button decrements the cache's value and increments the player's coins
+    popupDiv
+      .querySelector<HTMLButtonElement>(`#take`)!
+      .addEventListener("click", () => {
+        if (coinCache.get([lat, lng].toString())!.length > 0) {
+          console.log(coinCache.get([lat, lng].toString())!);
           playerPoints++;
-          statusPanel.innerHTML = `${playerPoints} points accumulated`;
-          regenerateText(coins, popupDiv, i, j);
-        });
-    }
+          statusPanel.innerHTML = `${playerPoints} coins accumulated`;
+          playerCoins.push(
+            coinCache.get(
+              [lat, lng].toString(),
+            )![coinCache.get([lat, lng].toString())!.length - 1],
+          );
+          coinCache.get([lat, lng].toString())!.pop();
+          rect.closePopup();
+        }
+      });
 
+    // Clicking the deposit button increments the cache's value and decrements the player's coins
     popupDiv
       .querySelector<HTMLButtonElement>(`#deposit`)!
       .addEventListener("click", () => {
         if (playerPoints > 0) {
           playerPoints--;
-          statusPanel.innerHTML = `${playerPoints} points accumulated`;
-          //coins.push(playerCoins[0]);
+          statusPanel.innerHTML = `${playerPoints} coins accumulated`;
+          coinCache.get([lat, lng].toString())!.push(
+            playerCoins[playerCoins.length - 1],
+          );
+          playerCoins.pop();
+          rect.closePopup();
         }
       });
 
     return popupDiv;
   });
-  return ret;
 }
 
-// Look around the player's neighborhood for caches to spawn
 for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
   for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
-    // If location i,j is lucky enough, spawn a cache!
     if (luck([i, j].toString()) < CACHE_SPAWN_PROBABILITY) {
-      cells.push(spawnCache(i, j));
+      board.addCell(i, j);
+      spawnCache(i, j);
     }
   }
 }
