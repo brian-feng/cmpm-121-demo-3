@@ -51,6 +51,7 @@ title.innerHTML = "Geocoin Carrier";
 title.style.marginLeft = "10px";
 title.style.font = "bold 54px sans-serif";
 
+// I guess we oakesin' it
 const origin = OAKES_CLASSROOM;
 
 // Display the player's points
@@ -64,11 +65,12 @@ interface Coin {
   serial: number;
 }
 
+// for numerical representation of position
 function roundNumber(value: number): number {
-  // for numerical representation of position
   return Math.floor(value * 10000);
 }
 
+// convert i, j position on map to lag, long position on world
 function generateLatLong(i: number, j: number) {
   return [
     roundNumber(origin.lat + i * TILE_DEGREES),
@@ -76,13 +78,16 @@ function generateLatLong(i: number, j: number) {
   ];
 }
 
+// Updates a popup's div with the current cache information
 function regenerateText(
   coins: Coin[],
   popupDiv: HTMLDivElement,
   i: number,
   j: number,
 ) {
+  // Long and lat of the cache
   const [lat, lng] = generateLatLong(i, j);
+
   // Set up the text for the cache
   let text = `<div><b>Cache "${lat}:${lng}".</b></div>
 							<br></br>
@@ -99,9 +104,12 @@ function regenerateText(
 							</div>
 					<button id="take">Take Coin</button>
 					<button id="deposit">Deposit Coin</button>`;
+
+  // Change popup text to update new information
   popupDiv.innerHTML = text;
 }
 
+// One time only, generate coins for a cache
 function generateCoins(i: number, j: number) {
   const [lat, lng] = generateLatLong(i, j);
 
@@ -121,22 +129,24 @@ function generateCoins(i: number, j: number) {
   }
 }
 
-// holds the currently spawned coin caches
+// Holds the currently spawned coin caches
 const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
 
-// player's coin inventory
+// Player's coin inventory
 const playerCoins: Coin[] = [];
+
+// Coins that exist outside the player's inventory
 const coinCache: Map<string, Coin[]> = new Map<string, Coin[]>();
 
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
   const [lat, lng] = generateLatLong(i, j);
-  // Convert cell numbers into lat/lng bounds
   const bounds = leaflet.latLngBounds([
     [origin.lat + i * TILE_DEGREES, origin.lng + j * TILE_DEGREES],
     [origin.lat + (i + 1) * TILE_DEGREES, origin.lng + (j + 1) * TILE_DEGREES],
   ]);
 
+  // Create coins for the cache upon creation
   generateCoins(i, j);
 
   // Add a rectangle to the map to represent the cache
@@ -183,6 +193,7 @@ function spawnCache(i: number, j: number) {
   });
 }
 
+// Spawn a bunch of caches
 for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
   for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
     if (luck([i, j].toString()) < CACHE_SPAWN_PROBABILITY) {
