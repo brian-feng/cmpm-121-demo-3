@@ -54,13 +54,26 @@ title.style.font = "bold 54px sans-serif";
 const origin = OAKES_CLASSROOM;
 
 // Display the player's points
-let playerPoints = 0;
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!; // element `statusPanel` is defined in index.html
 statusPanel.innerHTML = "No points yet...";
 statusPanel.style.font = "bold 24px sans-serif";
 
+interface Coin {
+  i: number;
+  j: number;
+  serial: number;
+}
+
 function roundNumber(value: number): number {
+  // for numerical representation of position
   return Math.floor(value * 10000);
+}
+
+function generateLatLong(i: number, j: number) {
+  return [
+    roundNumber(origin.lat + i * TILE_DEGREES),
+    roundNumber(origin.lng + j * TILE_DEGREES),
+  ];
 }
 
 function regenerateText(
@@ -69,26 +82,18 @@ function regenerateText(
   i: number,
   j: number,
 ) {
-  const lat = roundNumber(origin.lat + i * TILE_DEGREES);
-  const long = roundNumber(origin.lng + j * TILE_DEGREES);
-  const coinsList: string[] = [];
-  // Add additional coins based on the cache's value
-  for (let k = 0; k < coins.length; k++) {
-    coinsList.push(
-      `<li>Coin ${
-        Math.floor((origin.lat + coins[k].i * TILE_DEGREES) * 10000)
-      }:${Math.floor((origin.lng + coins[k].j * TILE_DEGREES) * 10000)} #${
-        coins[k].serial
-      }</li>`,
-    );
-  }
+  const [lat, lng] = generateLatLong(i, j);
   // Set up the text for the cache
-  let text = `<div><b>Cache "${lat}:${long}".</b></div>
+  let text = `<div><b>Cache "${lat}:${lng}".</b></div>
 							<br></br>
 							<div>Coins: 
 									<ul>`;
-  for (let k = 0; k < coinsList.length; k++) {
-    text += coinsList[k];
+  for (let k = 0; k < coins.length; k++) {
+    text += `<li>Coin ${
+      Math.floor((origin.lat + coins[k].i * TILE_DEGREES) * 10000)
+    }:${Math.floor((origin.lng + coins[k].j * TILE_DEGREES) * 10000)} #${
+      coins[k].serial
+    }</li>`;
   }
   text += `       </ul>
 							</div>
@@ -97,25 +102,9 @@ function regenerateText(
   popupDiv.innerHTML = text;
 }
 
-interface Coin {
-  i: number;
-  j: number;
-  serial: number;
-}
+function generateCoins(i: number, j: number) {
+  const [lat, lng] = generateLatLong(i, j);
 
-const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
-const playerCoins: Coin[] = [];
-const coinCache: Map<string, Coin[]> = new Map<string, Coin[]>();
-
-// Add caches to the map by cell numbers
-function spawnCache(i: number, j: number) {
-  const lat = roundNumber(origin.lat + i * TILE_DEGREES);
-  const lng = roundNumber(origin.lng + j * TILE_DEGREES);
-  // Convert cell numbers into lat/lng bounds
-  const bounds = leaflet.latLngBounds([
-    [origin.lat + i * TILE_DEGREES, origin.lng + j * TILE_DEGREES],
-    [origin.lat + (i + 1) * TILE_DEGREES, origin.lng + (j + 1) * TILE_DEGREES],
-  ]);
   const pointValue = Math.floor(
     luck([i, j, "initialValue"].toString()) * 100,
   );
@@ -126,9 +115,30 @@ function spawnCache(i: number, j: number) {
       coins.push({ i: lat, j: lng, serial: k + 1 });
     }
   }
+
   if (coinCache.get([lat, lng].toString()) == null) {
     coinCache.set([lat, lng].toString(), coins);
   }
+}
+
+// holds the currently spawned coin caches
+const board = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
+
+// player's coin inventory
+const playerCoins: Coin[] = [];
+const coinCache: Map<string, Coin[]> = new Map<string, Coin[]>();
+
+// Add caches to the map by cell numbers
+function spawnCache(i: number, j: number) {
+  const [lat, lng] = generateLatLong(i, j);
+  // Convert cell numbers into lat/lng bounds
+  const bounds = leaflet.latLngBounds([
+    [origin.lat + i * TILE_DEGREES, origin.lng + j * TILE_DEGREES],
+    [origin.lat + (i + 1) * TILE_DEGREES, origin.lng + (j + 1) * TILE_DEGREES],
+  ]);
+
+  generateCoins(i, j);
+
   // Add a rectangle to the map to represent the cache
   const rect = leaflet.rectangle(bounds);
   rect.addTo(map);
@@ -144,14 +154,13 @@ function spawnCache(i: number, j: number) {
       .addEventListener("click", () => {
         if (coinCache.get([lat, lng].toString())!.length > 0) {
           console.log(coinCache.get([lat, lng].toString())!);
-          playerPoints++;
-          statusPanel.innerHTML = `${playerPoints} coins accumulated`;
           playerCoins.push(
             coinCache.get(
               [lat, lng].toString(),
             )![coinCache.get([lat, lng].toString())!.length - 1],
           );
           coinCache.get([lat, lng].toString())!.pop();
+          statusPanel.innerHTML = `${playerCoins.length} coins accumulated`;
           rect.closePopup();
         }
       });
@@ -160,13 +169,12 @@ function spawnCache(i: number, j: number) {
     popupDiv
       .querySelector<HTMLButtonElement>(`#deposit`)!
       .addEventListener("click", () => {
-        if (playerPoints > 0) {
-          playerPoints--;
-          statusPanel.innerHTML = `${playerPoints} coins accumulated`;
+        if (playerCoins.length > 0) {
           coinCache.get([lat, lng].toString())!.push(
             playerCoins[playerCoins.length - 1],
           );
           playerCoins.pop();
+          statusPanel.innerHTML = `${playerCoins.length} coins accumulated`;
           rect.closePopup();
         }
       });
