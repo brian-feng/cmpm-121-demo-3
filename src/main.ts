@@ -56,7 +56,7 @@ const origin = OAKES_CLASSROOM;
 
 // Display the player's points
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!; // element `statusPanel` is defined in index.html
-statusPanel.innerHTML = "No points yet...";
+statusPanel.innerHTML = "No coins yet...";
 statusPanel.style.font = "bold 24px sans-serif";
 
 interface Coin {
@@ -79,7 +79,7 @@ function generateLatLong(i: number, j: number) {
 }
 
 // Updates a popup's div with the current cache information
-function regenerateText(
+function regeneratePopupText(
   coins: Coin[],
   popupDiv: HTMLDivElement,
   i: number,
@@ -138,6 +138,17 @@ const playerCoins: Coin[] = [];
 // Coins that exist outside the player's inventory
 const coinCache: Map<string, Coin[]> = new Map<string, Coin[]>();
 
+function regenerateCoinText() {
+  statusPanel.innerHTML = `${playerCoins.length} coins accumulated
+          <ul>`;
+  for (let i = 0; i < playerCoins.length; i++) {
+    statusPanel.innerHTML += `<li> Coin ${playerCoins[i].i}:${
+      playerCoins[i].j
+    } #${playerCoins[i].serial} </li>`;
+  }
+  statusPanel.innerHTML += `</ul>`;
+}
+
 // Add caches to the map by cell numbers
 function spawnCache(i: number, j: number) {
   const [lat, lng] = generateLatLong(i, j);
@@ -149,14 +160,13 @@ function spawnCache(i: number, j: number) {
   // Create coins for the cache upon creation
   generateCoins(i, j);
 
-  // Add a rectangle to the map to represent the cache
   const rect = leaflet.rectangle(bounds);
   rect.addTo(map);
 
   // Handle interactions with the cache
   rect.bindPopup(() => {
     const popupDiv = document.createElement("div");
-    regenerateText(coinCache.get([lat, lng].toString())!, popupDiv, i, j);
+    regeneratePopupText(coinCache.get([lat, lng].toString())!, popupDiv, i, j);
 
     // Clicking the take button decrements the cache's value and increments the player's coins
     popupDiv
@@ -170,7 +180,7 @@ function spawnCache(i: number, j: number) {
             )![coinCache.get([lat, lng].toString())!.length - 1],
           );
           coinCache.get([lat, lng].toString())!.pop();
-          statusPanel.innerHTML = `${playerCoins.length} coins accumulated`;
+          regenerateCoinText();
           rect.closePopup();
         }
       });
@@ -184,7 +194,7 @@ function spawnCache(i: number, j: number) {
             playerCoins[playerCoins.length - 1],
           );
           playerCoins.pop();
-          statusPanel.innerHTML = `${playerCoins.length} coins accumulated`;
+          regenerateCoinText();
           rect.closePopup();
         }
       });
@@ -193,12 +203,38 @@ function spawnCache(i: number, j: number) {
   });
 }
 
+// generate buttons for player movement
+function makeButtons() {
+  const northButton = document.querySelector<HTMLButtonElement>("#north")!;
+  const eastButton = document.querySelector<HTMLButtonElement>("#east")!;
+  const southButton = document.querySelector<HTMLButtonElement>("#south")!;
+  const westButton = document.querySelector<HTMLButtonElement>("#west")!;
+  const buttons = [northButton, eastButton, southButton, westButton];
+
+  const changes = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+  for (let i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener("click", () => {
+      playerMarker.setLatLng(
+        new leaflet.LatLng(
+          playerMarker.getLatLng().lat + changes[i][0] * TILE_DEGREES,
+          playerMarker.getLatLng().lng + changes[i][1] * TILE_DEGREES,
+        ),
+      );
+    });
+  }
+}
+
 // Spawn a bunch of caches
-for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
-  for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
-    if (luck([i, j].toString()) < CACHE_SPAWN_PROBABILITY) {
-      board.addCell(i, j);
-      spawnCache(i, j);
+function generateCaches() {
+  for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
+    for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
+      if (luck([i, j].toString()) < CACHE_SPAWN_PROBABILITY) {
+        board.addCell(i, j);
+        spawnCache(i, j);
+      }
     }
   }
 }
+
+makeButtons();
+generateCaches();
