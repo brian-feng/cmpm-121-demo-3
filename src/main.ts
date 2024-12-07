@@ -94,9 +94,7 @@ function regeneratePopupText(
 							<div>Coins: 
 									<ul>`;
   for (let k = 0; k < coins.length; k++) {
-    text += `<li>Coin ${
-      Math.floor((origin.lat + coins[k].i * TILE_DEGREES) * 10000)
-    }:${Math.floor((origin.lng + coins[k].j * TILE_DEGREES) * 10000)} #${
+    text += `<li>Coin ${coins[k].i}:${coins[k].j} #${
       coins[k].serial
     }</li>`;
   }
