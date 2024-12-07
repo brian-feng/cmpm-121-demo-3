@@ -94,9 +94,7 @@ function regeneratePopupText(
 							<div>Coins: 
 									<ul>`;
   for (let k = 0; k < coins.length; k++) {
-    text += `<li>Coin ${coins[k].i}:${coins[k].j} #${
-      coins[k].serial
-    }</li>`;
+    text += `<li>Coin ${coins[k].i}:${coins[k].j} #${coins[k].serial}</li>`;
   }
   text += `       </ul>
 							</div>
