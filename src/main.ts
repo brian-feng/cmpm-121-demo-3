@@ -89,7 +89,7 @@ function regeneratePopupText(
   const [lat, lng] = generateLatLong(i, j);
 
   // Set up the text for the cache
-  let text = `<div><b>Cache "${lat}:${lng}".</b></div>
+  let text = `<div><b>Cache ${lat}:${lng}</b></div>
 							<br></br>
 							<div>Coins: 
 									<ul>`;
@@ -199,12 +199,17 @@ function spawnCache(i: number, j: number) {
   });
 }
 
+let isTracking = false;
+let watchID: number | null = null;
+
 // generate buttons for player movement
 function makeButtons() {
   const northButton = document.querySelector<HTMLButtonElement>("#north")!;
   const eastButton = document.querySelector<HTMLButtonElement>("#east")!;
   const southButton = document.querySelector<HTMLButtonElement>("#south")!;
   const westButton = document.querySelector<HTMLButtonElement>("#west")!;
+  const sensorButton = document.querySelector<HTMLButtonElement>("#sensor")!;
+  const resetButton = document.querySelector<HTMLButtonElement>("#reset")!;
   const buttons = [northButton, eastButton, southButton, westButton];
 
   const changes = [[1, 0], [0, 1], [-1, 0], [0, -1]];
@@ -218,6 +223,50 @@ function makeButtons() {
       );
     });
   }
+
+  sensorButton.addEventListener("click", () => {
+    if (isTracking) {
+      // Stop tracking
+      if (watchID !== null) {
+        navigator.geolocation.clearWatch(watchID);
+        watchID = null;
+      }
+      sensorButton.innerText = "🌐";
+      isTracking = false;
+    } else {
+      // Start tracking
+      if (navigator.geolocation) {
+        watchID = navigator.geolocation.watchPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const newPos = leaflet.latLng(latitude, longitude);
+
+            // Update user marker and map view
+            playerMarker.setLatLng(newPos);
+            map.setView(newPos);
+
+          },
+          (error) => {
+            console.error("Geolocation error:", error.message);
+            alert("Unable to retrieve location.");
+          },
+          {
+            enableHighAccuracy: true, // Use high accuracy if available
+          },
+        );
+        sensorButton.innerText = "⛔ Stop Tracking";
+        isTracking = true;
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    }
+  });
+
+  resetButton.addEventListener("click", () => {
+    playerMarker.setLatLng(OAKES_CLASSROOM);
+  });
+
+  
 }
 
 // Spawn a bunch of caches
