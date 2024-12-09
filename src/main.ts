@@ -200,7 +200,7 @@ function spawnCache(i: number, j: number) {
 }
 
 let isTracking = false;
-let watchID: number | null = null;
+let locationID: number | null = null;
 
 // generate buttons for player movement
 function makeButtons() {
@@ -226,38 +226,24 @@ function makeButtons() {
 
   sensorButton.addEventListener("click", () => {
     if (isTracking) {
-      // Stop tracking
-      if (watchID !== null) {
-        navigator.geolocation.clearWatch(watchID);
-        watchID = null;
+      if (locationID !== null) {
+        navigator.geolocation.clearWatch(locationID);
+        locationID = null;
       }
-      sensorButton.innerText = "🌐";
       isTracking = false;
     } else {
-      // Start tracking
       if (navigator.geolocation) {
-        watchID = navigator.geolocation.watchPosition(
+        locationID = navigator.geolocation.watchPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             const newPos = leaflet.latLng(latitude, longitude);
 
-            // Update user marker and map view
             playerMarker.setLatLng(newPos);
             map.setView(newPos);
 
           },
-          (error) => {
-            console.error("Geolocation error:", error.message);
-            alert("Unable to retrieve location.");
-          },
-          {
-            enableHighAccuracy: true, // Use high accuracy if available
-          },
         );
-        sensorButton.innerText = "⛔ Stop Tracking";
         isTracking = true;
-      } else {
-        alert("Geolocation is not supported by this browser.");
       }
     }
   });
