@@ -240,7 +240,6 @@ function makeButtons() {
 
             playerMarker.setLatLng(newPos);
             map.setView(newPos);
-
           },
         );
         isTracking = true;
@@ -251,8 +250,6 @@ function makeButtons() {
   resetButton.addEventListener("click", () => {
     playerMarker.setLatLng(OAKES_CLASSROOM);
   });
-
-  
 }
 
 // Spawn a bunch of caches
